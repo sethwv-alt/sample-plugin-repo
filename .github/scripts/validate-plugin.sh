@@ -196,6 +196,46 @@ main() {
   # Compute merge base
   MERGE_BASE=$(git merge-base origin/$BASE_REF HEAD)
   
+  # Block PRs that modify .github/ files unless author is a repo maintainer or listed in CODEOWNERS
+  GITHUB_CHANGES=$(git diff --name-only $MERGE_BASE HEAD | grep '^\.github/' || true)
+  if [[ -n "$GITHUB_CHANGES" ]]; then
+    IS_REPO_MAINTAINER=$(check_repo_maintainer "$PR_AUTHOR")
+    
+    # Parse CODEOWNERS: collect all @username entries from lines covering .github/
+    CODEOWNERS_FILE=".github/CODEOWNERS"
+    IS_CODEOWNER=0
+    if [[ -f "$CODEOWNERS_FILE" ]]; then
+      while IFS= read -r line; do
+        # Skip comments and blank lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// }" ]] && continue
+        pattern=$(echo "$line" | awk '{print $1}')
+        # Check if this rule covers .github/ paths
+        if [[ ".github/CODEOWNERS" == $pattern* ]] || [[ ".github/" == $pattern* ]] || [[ "$pattern" == "*" ]]; then
+          owners=$(echo "$line" | grep -oE '@[A-Za-z0-9_-]+' | sed 's/@//')
+          for owner in $owners; do
+            if [[ "$owner" == "$PR_AUTHOR" ]]; then
+              IS_CODEOWNER=1
+              break 2
+            fi
+          done
+        fi
+      done < "$CODEOWNERS_FILE"
+    fi
+    
+    if [[ "$IS_REPO_MAINTAINER" -ne 1 ]] && [[ "$IS_CODEOWNER" -ne 1 ]]; then
+      echo "## Workflow file modification denied"
+      echo ""
+      echo "This PR modifies files under \`.github/\`, which is restricted to repository maintainers and users listed in CODEOWNERS."
+      echo ""
+      echo "**Modified files:**"
+      echo "\`\`\`"
+      echo "$GITHUB_CHANGES"
+      echo "\`\`\`"
+      exit 1
+    fi
+  fi
+  
   # Detect modified plugins
   PLUGIN_DIRS=$(git diff --name-only $MERGE_BASE HEAD \
     | grep '^plugins/' | cut -d '/' -f2 | sort -u)

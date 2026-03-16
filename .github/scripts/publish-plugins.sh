@@ -136,7 +136,7 @@ for plugin_dir in plugins/*/; do
   [[ -f "$plugin_dir/README.md" ]] && has_readme=true
   
   {
-    echo "← [Back to All Plugins](../../)"
+    echo "[Back to All Plugins](../../)"
     echo ""
     if [[ "$has_readme" == "true" ]]; then
       echo "# [$name](https://github.com/${GITHUB_REPOSITORY}/blob/$SOURCE_BRANCH/plugins/${plugin_name}/README.md)"
@@ -148,7 +148,7 @@ for plugin_dir in plugins/*/; do
     echo ""
     echo "**Owner:** $owner"
     echo ""
-    echo "## 📥 Downloads"
+    echo "## Downloads"
     echo ""
     echo "### Latest Release"
     echo ""
@@ -218,9 +218,9 @@ for plugin_dir in plugins/*/; do
     echo ""
     echo "---"
     echo ""
-    echo "**📂 Source:** [Browse Plugin](https://github.com/${GITHUB_REPOSITORY}/tree/$SOURCE_BRANCH/plugins/${plugin_name})"
+    echo "**Source:** [Browse Plugin](https://github.com/${GITHUB_REPOSITORY}/tree/$SOURCE_BRANCH/plugins/${plugin_name})"
     echo ""
-    echo "**📋 Metadata:** [View full metadata](../../metadata/${plugin_name}/manifest.json)"
+    echo "**Metadata:** [View full metadata](../../metadata/${plugin_name}/manifest.json)"
   } > "releases/$plugin_name/README.md"
   
   echo "  Generated README for $plugin_name"
@@ -403,15 +403,15 @@ echo "📄 Generating README.md..."
 {
   echo "# Plugin Releases"
   echo ""
-  echo "This branch contains all published plugin releases with automated builds and metadata."
+  echo "This branch contains all published plugin releases."
   echo ""
-  echo "## 📥 Quick Access"
+  echo "## Quick Access"
   echo ""
-  echo "- **Manifest**: [\`manifest.json\`](./manifest.json) - Complete plugin registry with metadata"
-  echo "- **Releases**: [\`releases/\`](./releases/) - All plugin ZIP files"
-  echo "- **Metadata**: [\`metadata/\`](./metadata/) - Version metadata with checksums"
+  echo "- [manifest.json](./manifest.json) - Complete plugin registry with metadata"
+  echo "- [releases/](./releases/) - All plugin ZIP files"
+  echo "- [metadata/](./metadata/) - Version metadata with checksums"
   echo ""
-  echo "## 📦 Available Plugins"
+  echo "## Available Plugins"
   echo ""
   echo "| Plugin | Version | Owner | Description |"
   echo "|--------|---------|-------|-------------|"
@@ -456,7 +456,7 @@ echo "📄 Generating README.md..."
       # Create anchor-safe name (lowercase, spaces to hyphens, remove special chars)
       anchor=$(echo "$name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/--*/-/g')
       
-      echo "| [\`$name\`](#$anchor) ⚠️ | \`$version\` | $owner | ~~$description~~ |"
+      echo "| [\`$name\`](#$anchor) (deprecated) | \`$version\` | $owner | $description |"
     fi
   done
   
@@ -492,9 +492,9 @@ echo "📄 Generating README.md..."
     # Header
     if [[ "$is_deprecated" == "true" ]]; then
       if [[ "$has_source_readme" == "true" ]]; then
-        echo "### ⚠️ [$name]($readme_url)"
+        echo "### [$name]($readme_url) (deprecated)"
       else
-        echo "### ⚠️ $name"
+        echo "### $name (deprecated)"
       fi
       echo ""
     else
@@ -527,7 +527,7 @@ echo "📄 Generating README.md..."
     # Footer with conditional maintainers and source links
     local footer=""
     if [[ -n "$maintainers" ]]; then
-      footer="**👥 Maintainers:** $maintainers | "
+      footer="**Maintainers:** $maintainers | "
     fi
     footer+="**Source:** [Browse](${source_url})"
     if [[ "$has_source_readme" == "true" ]]; then
@@ -592,9 +592,9 @@ echo "📄 Generating README.md..."
   
   if [[ "$has_deprecated" == "true" ]]; then
     echo ""
-    echo "## ⚠️ Deprecated Plugins"
+    echo "## Deprecated Plugins"
     echo ""
-    echo "These plugins are deprecated and may be removed in the future without notice. They may not work in current or future versions of the application. Use at your own risk."
+    echo "These plugins are deprecated and may be removed in the future. Use at your own risk."
     echo ""
     
     for plugin_dir in $(ls -d plugins/*/ | sort); do
@@ -634,20 +634,13 @@ echo "📄 Generating README.md..."
     done
   fi
   
-  echo "## 🔍 Using the Manifest"
+  echo "## Using the Manifest"
   echo ""
-  echo "Programmatically access plugin information:"
+  echo "Fetch \`manifest.json\` to programmatically access plugin metadata and download URLs:"
   echo ""
   echo "\`\`\`bash"
   echo "curl https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/$RELEASES_BRANCH/manifest.json"
   echo "\`\`\`"
-  echo ""
-  echo "The manifest includes:"
-  echo "- Plugin metadata (name, version, owner, description)"
-  echo "- Download URLs for all versions"
-  echo "- Checksums (MD5, SHA256) for integrity verification"
-  echo "- Git commit information for traceability"
-  echo "- Build timestamps"
   echo ""
   echo "---"
   echo ""
