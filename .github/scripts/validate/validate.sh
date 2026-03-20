@@ -142,14 +142,26 @@ has_permission="false"
     failed=1
   fi
 
-  # Permission check
+  # Permission check — use base branch version to prevent self-granting via the PR
   IS_REPO_MAINTAINER=$(check_repo_maintainer "$PR_AUTHOR")
-  if [[ "$PR_AUTHOR" == "$OWNER" ]] || [[ " $MAINTAINERS " =~ " $PR_AUTHOR " ]] || [[ "$IS_REPO_MAINTAINER" -eq 1 ]]; then
+  if [[ "$IS_REPO_MAINTAINER" -eq 1 ]]; then
     echo "- ✅ Permission check passed"
     has_permission="true"
+  elif git show origin/$BASE_REF:"$PLUGIN_JSON" > /dev/null 2>&1; then
+    BASE_JSON=$(git show origin/$BASE_REF:"$PLUGIN_JSON")
+    BASE_OWNER=$(echo "$BASE_JSON" | jq -r '.owner // ""')
+    BASE_MAINTAINERS=$(echo "$BASE_JSON" | jq -r '[.maintainers[]?] | join(" ")')
+    if [[ "$PR_AUTHOR" == "$BASE_OWNER" ]] || [[ " $BASE_MAINTAINERS " =~ " $PR_AUTHOR " ]]; then
+      echo "- ✅ Permission check passed"
+      has_permission="true"
+    else
+      echo "- ❌ **Permission denied**: \`$PR_AUTHOR\` is not listed in \`owner\` or \`maintainers\` on the base branch"
+      failed=1
+    fi
   else
-    echo "- ❌ **Permission denied**: \`$PR_AUTHOR\` must appear in \`owner\` or \`maintainers\`"
-    failed=1
+    # New plugin — no base version to check against; any author may create it
+    echo "- ✅ Permission check passed (new plugin)"
+    has_permission="true"
   fi
 
   # Version format

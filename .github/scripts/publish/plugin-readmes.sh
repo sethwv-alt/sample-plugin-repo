@@ -18,6 +18,8 @@ for plugin_dir in plugins/*/; do
   name=$(jq -r '.name' "$plugin_file")
   description=$(jq -r '.description' "$plugin_file")
   owner=$(jq -r '.owner' "$plugin_file")
+  repo_url=$(jq -r '.repo_url // empty' "$plugin_file")
+  discord_thread=$(jq -r '.discord_thread // empty' "$plugin_file")
   has_readme=false
   [[ -f "$plugin_dir/README.md" ]] && has_readme=true
 
@@ -34,6 +36,14 @@ for plugin_dir in plugins/*/; do
     echo ""
     echo "**Owner:** $owner"
     echo ""
+    if [[ -n "$repo_url" ]]; then
+      echo "**Repository:** [$repo_url]($repo_url)"
+      echo ""
+    fi
+    if [[ -n "$discord_thread" ]]; then
+      echo "**Discord:** [Discussion Thread]($discord_thread)"
+      echo ""
+    fi
     echo "## Downloads"
     echo ""
     echo "### Latest Release"

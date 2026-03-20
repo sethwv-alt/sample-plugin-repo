@@ -83,15 +83,17 @@ if [[ "$IS_REPO_MAINTAINER" -eq 1 ]]; then
   HAS_ANY_PERMISSION=1
 else
   for plugin in $PLUGIN_LIST; do
-    plugin_json="plugins/$plugin/plugin.json"
-    if [[ -f "$plugin_json" ]]; then
-      OWNER=$(jq -r '.owner // ""' "$plugin_json")
-      MAINTAINERS=$(jq -r '[.maintainers[]?] | join(" ")' "$plugin_json")
+    # Read from base branch to prevent self-granting permission via the PR itself
+    BASE_JSON=$(git show origin/$BASE_REF:"plugins/$plugin/plugin.json" 2>/dev/null || echo "")
+    if [[ -n "$BASE_JSON" ]]; then
+      OWNER=$(echo "$BASE_JSON" | jq -r '.owner // ""')
+      MAINTAINERS=$(echo "$BASE_JSON" | jq -r '[.maintainers[]?] | join(" ")')
       if [[ "$PR_AUTHOR" == "$OWNER" ]] || [[ " $MAINTAINERS " =~ " $PR_AUTHOR " ]]; then
         HAS_ANY_PERMISSION=1
         break
       fi
     fi
+    # New plugins (no base version) are handled by HAS_NEW_PLUGIN above
   done
 fi
 
