@@ -41,7 +41,7 @@ README="$PLUGIN_DIR/README.md"
 check_repo_maintainer() {
   local author=$1
   PERMISSION=$(gh api repos/$REPO_OWNER/$REPO_NAME/collaborators/$author/permission --jq .permission 2>/dev/null || echo "none")
-  if [[ "$PERMISSION" == "admin" || "$PERMISSION" == "write" ]]; then
+  if [[ "$PERMISSION" == "admin" || "$PERMISSION" == "maintain" || "$PERMISSION" == "write" ]]; then
     echo "1"
   else
     echo "0"
@@ -147,8 +147,8 @@ has_permission="false"
   if [[ "$IS_REPO_MAINTAINER" -eq 1 ]]; then
     echo "- ✅ Permission check passed"
     has_permission="true"
-  elif git show origin/$BASE_REF:"$PLUGIN_JSON" > /dev/null 2>&1; then
-    BASE_JSON=$(git show origin/$BASE_REF:"$PLUGIN_JSON")
+  elif git show "origin/${BASE_REF}:${PLUGIN_JSON}" > /dev/null 2>&1; then
+    BASE_JSON=$(git show "origin/${BASE_REF}:${PLUGIN_JSON}")
     BASE_OWNER=$(echo "$BASE_JSON" | jq -r '.owner // ""')
     BASE_MAINTAINERS=$(echo "$BASE_JSON" | jq -r '[.maintainers[]?] | join(" ")')
     if [[ "$PR_AUTHOR" == "$BASE_OWNER" ]] || [[ " $BASE_MAINTAINERS " =~ " $PR_AUTHOR " ]]; then
@@ -184,8 +184,8 @@ has_permission="false"
   fi
 
   # Version bump check
-  if git show origin/$BASE_REF:"$PLUGIN_JSON" > /dev/null 2>&1; then
-    OLD_VERSION=$(git show origin/$BASE_REF:"$PLUGIN_JSON" | jq -r '.version')
+  if git show "origin/${BASE_REF}:${PLUGIN_JSON}" > /dev/null 2>&1; then
+    OLD_VERSION=$(git show "origin/${BASE_REF}:${PLUGIN_JSON}" | jq -r '.version')
     if version_greater_than "$VERSION" "$OLD_VERSION"; then
       echo "- ✅ Version bump valid (\`$OLD_VERSION\` -> \`$VERSION\`)"
     else

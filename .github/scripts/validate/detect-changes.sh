@@ -38,10 +38,10 @@ has_write_access() {
   fi
 }
 
-MERGE_BASE=$(git merge-base origin/$BASE_REF HEAD)
+MERGE_BASE=$(git merge-base "origin/${BASE_REF}" HEAD)
 
 # --- .github/ protection check ---
-GITHUB_CHANGES=$(git diff --name-only $MERGE_BASE HEAD | grep '^\.github/' || true)
+GITHUB_CHANGES=$(git diff --name-only "$MERGE_BASE" HEAD | grep '^\.github/' || true)
 if [[ -n "$GITHUB_CHANGES" ]]; then
   if [[ "$(has_write_access "$PR_AUTHOR")" -ne 1 ]]; then
     echo "## Workflow file modification denied" >&2
@@ -57,7 +57,7 @@ if [[ -n "$GITHUB_CHANGES" ]]; then
 fi
 
 # --- Detect modified plugins ---
-PLUGIN_LIST=$(git diff --name-only $MERGE_BASE HEAD \
+PLUGIN_LIST=$(git diff --name-only "$MERGE_BASE" HEAD \
   | grep '^plugins/' | cut -d '/' -f2 | sort -u)
 
 if [[ -z "$PLUGIN_LIST" ]]; then
@@ -65,16 +65,34 @@ if [[ -z "$PLUGIN_LIST" ]]; then
   exit 1
 fi
 
-PLUGIN_COUNT=$(echo "$PLUGIN_LIST" | wc -w | tr -d ' ')
+# --- Allowlist: only accept safe lowercase-kebab-case names before they enter the matrix ---
+SAFE_LIST=""
+while IFS= read -r plugin; do
+  [[ -z "$plugin" ]] && continue
+  if [[ "$plugin" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+    SAFE_LIST+="${plugin}"$'\n'
+  else
+    echo "::warning::Skipping plugin with unsafe folder name: '${plugin}'"
+  fi
+done <<< "$PLUGIN_LIST"
+PLUGIN_LIST=$(printf '%s' "$SAFE_LIST" | grep . || true)
+
+if [[ -z "$PLUGIN_LIST" ]]; then
+  echo "::error::No valid plugin changes detected in this PR."
+  exit 1
+fi
+
+PLUGIN_COUNT=$(echo "$PLUGIN_LIST" | wc -l | tr -d ' ')
 
 # --- Check if any modified plugin is new (does not exist on base branch) ---
 HAS_NEW_PLUGIN=0
-for plugin in $PLUGIN_LIST; do
-  if ! git show origin/$BASE_REF:"plugins/$plugin/plugin.json" > /dev/null 2>&1; then
+while IFS= read -r plugin; do
+  [[ -z "$plugin" ]] && continue
+  if ! git show "origin/${BASE_REF}:plugins/${plugin}/plugin.json" > /dev/null 2>&1; then
     HAS_NEW_PLUGIN=1
     break
   fi
-done
+done <<< "$PLUGIN_LIST"
 
 # --- Check if PR author has permission for at least one modified plugin ---
 HAS_ANY_PERMISSION=0
@@ -82,9 +100,10 @@ IS_REPO_MAINTAINER=$(has_write_access "$PR_AUTHOR")
 if [[ "$IS_REPO_MAINTAINER" -eq 1 ]]; then
   HAS_ANY_PERMISSION=1
 else
-  for plugin in $PLUGIN_LIST; do
+  while IFS= read -r plugin; do
+    [[ -z "$plugin" ]] && continue
     # Read from base branch to prevent self-granting permission via the PR itself
-    BASE_JSON=$(git show origin/$BASE_REF:"plugins/$plugin/plugin.json" 2>/dev/null || echo "")
+    BASE_JSON=$(git show "origin/${BASE_REF}:plugins/${plugin}/plugin.json" 2>/dev/null || echo "")
     if [[ -n "$BASE_JSON" ]]; then
       OWNER=$(echo "$BASE_JSON" | jq -r '.owner // ""')
       MAINTAINERS=$(echo "$BASE_JSON" | jq -r '[.maintainers[]?] | join(" ")')
@@ -94,7 +113,7 @@ else
       fi
     fi
     # New plugins (no base version) are handled by HAS_NEW_PLUGIN above
-  done
+  done <<< "$PLUGIN_LIST"
 fi
 
 # Determine if this PR should be auto-closed:

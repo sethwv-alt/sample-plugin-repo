@@ -108,19 +108,19 @@ done
 } > pr_comment.txt
 
 # Post or update PR comment
-EXISTING_COMMENT_ID=$(gh pr view $PR_NUMBER --json comments \
+EXISTING_COMMENT_ID=$(gh pr view "$PR_NUMBER" --json comments \
   --jq '.comments[] | select(.author.login=="github-actions[bot]") | select(.body | contains("<!--PLUGIN_VALIDATION_COMMENT-->")) | .id' \
   || true)
 
 if [[ -n "$EXISTING_COMMENT_ID" ]]; then
   gh api "repos/$GITHUB_REPOSITORY/issues/comments/$EXISTING_COMMENT_ID" -X PATCH -f body="$(cat pr_comment.txt)"
 else
-  gh pr comment $PR_NUMBER --body "$(cat pr_comment.txt)"
+  gh pr comment "$PR_NUMBER" --body "$(cat pr_comment.txt)"
 fi
 
 # Close if unauthorized
 if [[ "$CLOSE_PR" == "true" ]]; then
-  gh pr close $PR_NUMBER
+  gh pr close "$PR_NUMBER"
   echo "PR #$PR_NUMBER closed: unauthorized"
   exit 0
 fi
