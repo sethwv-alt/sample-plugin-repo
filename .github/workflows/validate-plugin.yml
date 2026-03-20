@@ -5,7 +5,7 @@ permissions:
   pull-requests: write
 
 on:
-  pull_request:
+  pull_request_target:
     types:
       - opened
       - edited
@@ -25,6 +25,7 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           COMMENT="<\!--PLUGIN_VALIDATION_DRAFT_NOTICE-->"
           COMMENT+=$'\n'"This PR is currently a draft. Plugin validation will run once the PR is marked ready for review."
